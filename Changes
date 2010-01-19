@@ -1,5 +1,9 @@
 Revision history for Data-Munge
 
+0.03    2010-01-19
+        * Dropped dependency on Defaults::Mauke.
+        * Added submatches/replace.
+
 0.02    2009-12-14
         First version, released on an unsuspecting world.
 

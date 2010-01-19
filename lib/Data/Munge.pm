@@ -1,24 +1,54 @@
 package Data::Munge;
 
-use Defaults::Mauke;
+use warnings;
+use strict;
 use Exporter qw[import];
 
-our $VERSION = '0.02';
-our @EXPORT = our @EXPORT_OK = qw[list2re byval mapval];
+our $VERSION = '0.03';
+our @EXPORT = our @EXPORT_OK = qw[list2re byval mapval submatches replace];
 
-fun list2re(@args) {
-	my $re = join '|', map quotemeta, sort {length $b <=> length $a || $a cmp $b } @args;
+sub list2re {
+	my $re = join '|', map quotemeta, sort {length $b <=> length $a || $a cmp $b } @_;
 	qr/$re/
 }
 
-fun byval($f, $x) :(&$) {
+sub byval (&$) {
+	my ($f, $x) = @_;
 	local *_ = \$x;
 	$f->($_);
 	$x
 }
 
-fun mapval($f, @xs) :(&@) {
+sub mapval (&@) {
+	my $f = shift;
+	my @xs = @_;
 	map { $f->($_); $_ } @xs
+}
+
+sub submatches {
+	no strict 'refs';
+	map $$_, 1 .. $#+
+}
+
+sub replace {
+	my ($str, $re, $x, $g) = @_;
+	my $f = ref $x ? $x : sub {
+		my $r = $x;
+		$r =~ s{\$([\$&`'0-9]|\{([0-9]+)\})}{
+			$+ eq '$' ? '$' :
+			$+ eq '&' ? $_[0] :
+			$+ eq '`' ? substr($_[-1], 0, $_[-2]) :
+			$+ eq "'" ? substr($_[-1], $_[-2] + length $_[0]) :
+			$_[$+]
+		}eg;
+		$r
+	};
+	if ($g) {
+		$str =~ s{$re}{ $f->(substr($str, $-[0], $+[0] - $-[0]), submatches, $-[0], $str) }eg;
+	} else {
+		$str =~ s{$re}{ $f->(substr($str, $-[0], $+[0] - $-[0]), submatches, $-[0], $str) }e;
+	}
+	$str
 }
 
 1
@@ -36,6 +66,8 @@ Data::Munge - various utility functions
  my $re = list2re qw/foo bar baz/;
  print byval { s/foo/bar/ } $text;
  foo(mapval { chomp } @lines);
+ print replace('Apples are round, and apples are juicy.', qr/apples/i, 'oranges', 'g');
+ print replace('John Smith', qr/(\w+)\s+(\w+)/, '$2, $1');
 
 =head1 DESCRIPTION
 
@@ -76,6 +108,62 @@ block). Example:
  # @foo contains a copy of @bar where all elements have been chomp'd.
  # This could also be written as chomp(my @foo = @bar); but that's not
  # always possible.
+
+=item submatches
+
+Returns a list of the strings captured by the last successful pattern match.
+Normally you don't need this function because this is exactly what C<m//>
+returns in list context. However, C<submatches> also works in other contexts
+such as the RHS of C<s//.../e>.
+
+=item replace STRING, REGEX, REPLACEMENT, FLAG
+
+=item replace STRING, REGEX, REPLACEMENT
+
+A clone of javascript's C<String.prototype.replace>. It works almost the same
+as C<byval { s/REGEX/REPLACEMENT/FLAG } STRING>, but with a few important
+differences. REGEX can be a string or a compiled C<qr//> object. REPLACEMENT
+can be a string or a subroutine reference. If it's a string, it can contain the
+following replacement patterns:
+
+=over
+
+=item $$
+
+Inserts a '$'.
+
+=item $&
+
+Inserts the matched substring.
+
+=item $`
+
+Inserts the substring preceding the match.
+
+=item $'
+
+Inserts the substring following the match.
+
+=item $N  (where N is a digit)
+
+Inserts the substring matched by the Nth capturing group.
+
+=item ${N}  (where N is one or more digits)
+
+Inserts the substring matched by the Nth capturing group.
+
+=back
+
+Note that these aren't variables; they're character sequences interpreted by C<replace>.
+
+If REPLACEMENT is a subroutine reference, it's called with the following
+arguments: First the matched substring (like C<$&> above), then the contents of
+the capture buffers (as returned by C<submatches>), then the offset where the
+pattern matched (like C<$-[0]>, see L<perlvar/@->), then the STRING. The return
+value will be inserted in place of the matched substring.
+
+Normally only the first occurrence of REGEX is replaced. If FLAG is present, it
+must be C<'g'> and causes all occurrences to be replaced.
 
 =back
 

@@ -13,7 +13,6 @@ WriteMakefile(
     PL_FILES            => {},
     PREREQ_PM => {
         'Test::More' => 0,
-        'Defaults::Mauke' => 0,
         'Exporter' => '5.57',
     },
     dist                => { COMPRESS => 'gzip -9f', SUFFIX => 'gz', },

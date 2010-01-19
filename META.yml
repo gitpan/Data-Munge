@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Data-Munge
-version:            0.02
+version:            0.03
 abstract:           various utility functions
 author:
     - Lukas Mai <l.mai@web.de>
@@ -11,9 +11,8 @@ configure_requires:
 build_requires:
     ExtUtils::MakeMaker:  0
 requires:
-    Defaults::Mauke:  0
-    Exporter:         5.57
-    Test::More:       0
+    Exporter:    5.57
+    Test::More:  0
 no_index:
     directory:
         - t
