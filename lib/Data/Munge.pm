@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use Exporter qw[import];
 
-our $VERSION = '0.03';
+our $VERSION = '0.031';
 our @EXPORT = our @EXPORT_OK = qw[list2re byval mapval submatches replace];
 
 sub list2re {
@@ -173,7 +173,7 @@ Lukas Mai, C<< <l.mai at web.de> >>
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2009 Lukas Mai.
+Copyright 2009-2010 Lukas Mai.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

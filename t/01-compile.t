@@ -2,8 +2,8 @@
 
 use Test::More tests => 6;
 
-use Defaults::Mauke;
-
+use warnings;
+use strict;
 use Data::Munge;
 
 is list2re(qw[! a abc ab foo bar baz ** *]), qr/abc|bar|baz|foo|\*\*|ab|\!|\*|a/, 'list2re';
