@@ -4,7 +4,7 @@ use warnings;
 use strict;
 use Exporter qw[import];
 
-our $VERSION = '0.031';
+our $VERSION = '0.032';
 our @EXPORT = our @EXPORT_OK = qw[list2re byval mapval submatches replace];
 
 sub list2re {

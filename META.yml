@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               Data-Munge
-version:            0.031
+version:            0.032
 abstract:           various utility functions
 author:
     - Lukas Mai <l.mai@web.de>
