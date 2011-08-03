@@ -4,11 +4,13 @@ use warnings;
 use strict;
 use Exporter qw[import];
 
-our $VERSION = '0.032';
+our $VERSION = '0.04';
 our @EXPORT = our @EXPORT_OK = qw[list2re byval mapval submatches replace];
 
 sub list2re {
+	@_ or return qr/(?!)/;
 	my $re = join '|', map quotemeta, sort {length $b <=> length $a || $a cmp $b } @_;
+	$re eq '' and $re = '(?#)';
 	qr/$re/
 }
 
@@ -173,7 +175,7 @@ Lukas Mai, C<< <l.mai at web.de> >>
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2009-2010 Lukas Mai.
+Copyright 2009-2011 Lukas Mai.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published
