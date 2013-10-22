@@ -4,8 +4,8 @@ use warnings;
 use strict;
 use base qw(Exporter);
 
-our $VERSION = '0.06';
-our @EXPORT = our @EXPORT_OK = qw[
+our $VERSION = '0.07';
+our @EXPORT = qw[
 	list2re
 	byval
 	mapval
@@ -88,8 +88,13 @@ sub elem {
 	!1
 }
 
+sub _eval { eval $_[0] }  # empty lexical scope
+
 sub eval_string {
-	my @r = wantarray ? eval $_[0] : scalar eval $_[0];
+	my ($code) = @_;
+	my ($package, $file, $line) = caller;
+	$code = qq{package $package; # eval_string()\n#line $line "$file"\n$code};
+	my @r = wantarray ? _eval $code : scalar _eval $code;
 	die $@ if $@;
 	wantarray ? @r : $r[0]
 }
@@ -238,7 +243,8 @@ Inserts the substring matched by the Nth capturing group.
 
 =back
 
-Note that these aren't variables; they're character sequences interpreted by C<replace>.
+Note that these aren't variables; they're character sequences interpreted by
+C<replace>.
 
 If REPLACEMENT is a subroutine reference, it's called with the following
 arguments: First the matched substring (like C<$&> above), then the contents of
@@ -261,7 +267,8 @@ if they're both references to the same thing, or if they're both not references
 and C<eq> to each other.
 
 This is implemented as a linear search through I<ARRAYREF> that terminates
-early if a match is found (i.e. C<elem 'A', ['A', 1 .. 9999]> won't even look at elements C<1 .. 9999>).
+early if a match is found (i.e. C<elem 'A', ['A', 1 .. 9999]> won't even look
+at elements C<1 .. 9999>).
 
 =item eval_string STRING
 
@@ -273,7 +280,7 @@ Creates an anonymous sub as C<sub BLOCK> would, but supplies the called sub
 with an extra argument that can be used to recurse:
 
  my $code = rec {
-   my ($rec, $x) = @_;
+   my ($rec, $n) = @_;
    $rec->($n - 1) if $n > 0;
    print $n, "\n";
  };

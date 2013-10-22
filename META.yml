@@ -4,10 +4,8 @@ author:
   - 'Lukas Mai <l.mai@web.de>'
 build_requires:
   Test::More: 0
-configure_requires:
-  ExtUtils::MakeMaker: 6.56
 dynamic_config: 1
-generated_by: 'ExtUtils::MakeMaker version 6.64, CPAN::Meta::Converter version 2.120921'
+generated_by: 'ExtUtils::MakeMaker version 6.8, CPAN::Meta::Converter version 2.132830'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -22,4 +20,6 @@ requires:
   base: 0
   strict: 0
   warnings: 0
-version: 0.06
+resources:
+  repository: git://github.com/mauke/Data-Munge.git
+version: 0.07
