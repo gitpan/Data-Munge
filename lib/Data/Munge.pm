@@ -1,74 +1,30 @@
 package Data::Munge;
 
-use warnings;
 use strict;
+use warnings;
 use base qw(Exporter);
 
-our $VERSION = '0.08';
-our @EXPORT = qw[
-    list2re
-    byval
-    mapval
-    submatches
-    replace
-    eval_string
-    rec
-    trim
-    elem
-];
+sub _eval { eval $_[0] }  # empty lexical scope
 
-sub list2re {
-    @_ or return qr/(?!)/;
-    my $re = join '|', map quotemeta, sort {length $b <=> length $a || $a cmp $b } @_;
-    $re eq '' and $re = '(?#)';
-    qr/$re/
-}
+our $VERSION = '0.09';
+our @EXPORT = qw(
+    byval
+    elem
+    eval_string
+    list2re
+    mapval
+    rec
+    replace
+    slurp
+    submatches
+    trim
+);
 
 sub byval (&$) {
     my ($f, $x) = @_;
     local *_ = \$x;
     $f->($_);
     $x
-}
-
-sub mapval (&@) {
-    my $f = shift;
-    my @xs = @_;
-    map { $f->($_); $_ } @xs
-}
-
-sub submatches {
-    no strict 'refs';
-    map $$_, 1 .. $#+
-}
-
-sub replace {
-    my ($str, $re, $x, $g) = @_;
-    my $f = ref $x ? $x : sub {
-        my $r = $x;
-        $r =~ s{\$([\$&`'0-9]|\{([0-9]+)\})}{
-            $+ eq '$' ? '$' :
-            $+ eq '&' ? $_[0] :
-            $+ eq '`' ? substr($_[-1], 0, $_[-2]) :
-            $+ eq "'" ? substr($_[-1], $_[-2] + length $_[0]) :
-            $_[$+]
-        }eg;
-        $r
-    };
-    if ($g) {
-        $str =~ s{$re}{ $f->(substr($str, $-[0], $+[0] - $-[0]), submatches, $-[0], $str) }eg;
-    } else {
-        $str =~ s{$re}{ $f->(substr($str, $-[0], $+[0] - $-[0]), submatches, $-[0], $str) }e;
-    }
-    $str
-}
-
-sub trim {
-    my ($s) = @_;
-    return undef if !defined $s;
-    $s =~ s/^\s+//;
-    $s =~ s/\s+\z//;
-    $s
 }
 
 sub elem {
@@ -89,8 +45,6 @@ sub elem {
     !1
 }
 
-sub _eval { eval $_[0] }  # empty lexical scope
-
 sub eval_string {
     my ($code) = @_;
     my ($package, $file, $line) = caller;
@@ -98,6 +52,19 @@ sub eval_string {
     my @r = wantarray ? _eval $code : scalar _eval $code;
     die $@ if $@;
     wantarray ? @r : $r[0]
+}
+
+sub list2re {
+    @_ or return qr/(?!)/;
+    my $re = join '|', map quotemeta, sort {length $b <=> length $a || $a cmp $b } @_;
+    $re eq '' and $re = '(?#)';
+    qr/$re/
+}
+
+sub mapval (&@) {
+    my $f = shift;
+    my @xs = @_;
+    map { $f->($_); $_ } @xs
 }
 
 if ($] >= 5.016) {
@@ -124,6 +91,45 @@ EOT
     };
 }
 
+sub replace {
+    my ($str, $re, $x, $g) = @_;
+    my $f = ref $x ? $x : sub {
+        my $r = $x;
+        $r =~ s{\$([\$&`'0-9]|\{([0-9]+)\})}{
+            $+ eq '$' ? '$' :
+            $+ eq '&' ? $_[0] :
+            $+ eq '`' ? substr($_[-1], 0, $_[-2]) :
+            $+ eq "'" ? substr($_[-1], $_[-2] + length $_[0]) :
+            $_[$+]
+        }eg;
+        $r
+    };
+    if ($g) {
+        $str =~ s{$re}{ $f->(substr($str, $-[0], $+[0] - $-[0]), submatches(), $-[0], $str) }eg;
+    } else {
+        $str =~ s{$re}{ $f->(substr($str, $-[0], $+[0] - $-[0]), submatches(), $-[0], $str) }e;
+    }
+    $str
+}
+
+sub slurp {
+    local $/;
+    scalar readline $_[0]
+}
+
+sub submatches {
+    no strict 'refs';
+    map $$_, 1 .. $#+
+}
+
+sub trim {
+    my ($s) = @_;
+    return undef if !defined $s;
+    $s =~ s/^\s+//;
+    $s =~ s/\s+\z//;
+    $s
+}
+
 'ok'
 
 __END__
@@ -136,13 +142,19 @@ Data::Munge - various utility functions
 
  use Data::Munge;
  
- my $re = list2re qw/foo bar baz/;
+ my $re = list2re qw/f ba foo bar baz/;
+ # $re = qr/bar|baz|foo|ba|f/;
  
  print byval { s/foo/bar/ } $text;
+ # print do { my $tmp = $text; $tmp =~ s/foo/bar/; $tmp };
+ 
  foo(mapval { chomp } @lines);
+ # foo(map { my $tmp = $_; chomp $tmp; $_ } @lines);
  
  print replace('Apples are round, and apples are juicy.', qr/apples/i, 'oranges', 'g');
+ # "oranges are round, and oranges are juicy."
  print replace('John Smith', qr/(\w+)\s+(\w+)/, '$2, $1');
+ # "Smith, John"
  
  my $trimmed = trim "  a b c "; # "a b c"
  
@@ -166,7 +178,7 @@ redefining or working around them, so I wrote this module.
 
 =head2 Functions
 
-=over 4
+=over
 
 =item list2re LIST
 
@@ -175,6 +187,29 @@ Especially useful in combination with C<keys>. Example:
 
  my $re = list2re keys %hash;
  $str =~ s/($re)/$hash{$1}/g;
+
+This function takes special care to get several edge cases right:
+
+=over
+
+=item *
+
+Empty list: An empty argument list results in a regex that doesn't match
+anything.
+
+=item *
+
+Empty string: An argument list consisting of a single empty string results in a
+regex that matches the empty string (and nothing else).
+
+=item *
+
+Prefixes: The input strings are sorted by descending length to ensure longer
+matches are tried before shorter matches. Otherwise C<list2re('ab', 'abcd')>
+would generate C<qr/ab|abcd/>, which (on its own) can never match C<abcd>
+(because C<ab> is tried first, and it always succeeds where C<abcd> could).
+
+=back
 
 =item byval BLOCK SCALAR
 
@@ -186,6 +221,12 @@ in the block will not affect the passed in value. Example:
  foo(byval { s/!/?/g } $str);
  # Calls foo() with the value of $str, but all '!' have been replaced by '?'.
  # $str itself is not modified.
+
+Since perl 5.14 you can also use the C</r> flag:
+
+ foo($str =~ s/!/?/gr);
+
+But C<byval> works on all versions of perl and is not limited to C<s///>.
 
 =item mapval BLOCK LIST
 
@@ -275,6 +316,14 @@ at elements C<1 .. 9999>).
 =item eval_string STRING
 
 Evals I<STRING> just like C<eval> but doesn't catch exceptions.
+
+=item slurp FILEHANDLE
+
+Reads and returns all remaining data from I<FILEHANDLE> as a string, or
+C<undef> if it hits end-of-file. (Interaction with non-blocking filehandles is
+currently not well defined.)
+
+C<slurp $handle> is equivalent to C<do { local $/; scalar readline $handle }>.
 
 =item rec BLOCK
 
