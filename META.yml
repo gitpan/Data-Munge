@@ -27,4 +27,4 @@ requires:
   warnings: '0'
 resources:
   repository: git://github.com/mauke/Data-Munge.git
-version: '0.09'
+version: '0.091'
