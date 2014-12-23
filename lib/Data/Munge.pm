@@ -6,7 +6,7 @@ use base qw(Exporter);
 
 sub _eval { eval $_[0] }  # empty lexical scope
 
-our $VERSION = '0.092';
+our $VERSION = '0.093';
 our @EXPORT = qw(
     byval
     elem
@@ -149,7 +149,7 @@ Data::Munge - various utility functions
  # print do { my $tmp = $text; $tmp =~ s/foo/bar/; $tmp };
  
  foo(mapval { chomp } @lines);
- # foo(map { my $tmp = $_; chomp $tmp; $_ } @lines);
+ # foo(map { my $tmp = $_; chomp $tmp; $tmp } @lines);
  
  print replace('Apples are round, and apples are juicy.', qr/apples/i, 'oranges', 'g');
  # "oranges are round, and oranges are juicy."
